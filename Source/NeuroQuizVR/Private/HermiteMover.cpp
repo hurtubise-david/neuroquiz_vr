@@ -47,39 +47,31 @@ void AHermiteMover::Tick(float DeltaTime)
         // Calcul de la nouvelle position
         AActor* ActualTarget = TargetActor ? TargetActor : this;
 
+        float t = FMath::Clamp(CurrentTime / Duration, 0.0f, 1.0f);
+
+        // (optionnel) ease in/out ici si tu l’as ajouté
+
         FVector NewLocation;
 
         if (bAdditive)
         {
-            // Si jamais StartMovement n'a pas été appelé, on capture quand même une base
             if (!bBaseCaptured)
             {
                 BaseLocation = ActualTarget->GetActorLocation();
                 bBaseCaptured = true;
             }
 
-            // Hermite en OFFSET : 0 -> EndPoint (EndPoint devient un déplacement final)
-            FVector Delta = CalculateHermite(
-                FVector::ZeroVector,
-                StartTangent,
-                EndPoint,
-                EndTangent,
-                t
-            );
-
+            FVector Delta = CalculateHermite(FVector::ZeroVector, StartTangent, EndPoint, EndTangent, t);
             NewLocation = BaseLocation + Delta;
         }
         else
         {
-            // Mode ABSOLU : StartPoint -> EndPoint (positions world)
-            NewLocation = CalculateHermite(
-                StartPoint,
-                StartTangent,
-                EndPoint,
-                EndTangent,
-                t
-            );
+            // ABSOLUTE => suit les widgets WORLD
+            NewLocation = CalculateHermite(StartPoint, StartTangent, EndPoint, EndTangent, t);
         }
+
+        ActualTarget->SetActorLocation(NewLocation);
+
 
 
 
