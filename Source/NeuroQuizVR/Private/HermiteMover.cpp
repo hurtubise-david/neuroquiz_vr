@@ -134,14 +134,22 @@ void AHermiteMover::Tick(float DeltaTime)
                 bBaseCaptured = true;
             }
 
-            FVector Delta = CalculateHermite(FVector::ZeroVector, StartTangent, EndPoint, EndTangent, t);
+            // mêmes tangentes que le debug additif
+            FVector M0 = StartTangent;            // car P0 = 0
+            FVector M1 = EndTangent - EndPoint;   // handle fin relatif
+
+            FVector Delta = CalculateHermite(FVector::ZeroVector, M0, EndPoint, M1, t);
             NewLocation = BaseLocation + Delta;
         }
         else
         {
-            // ABSOLUTE => suit les widgets WORLD
-            NewLocation = CalculateHermite(StartPoint, StartTangent, EndPoint, EndTangent, t);
+            // mêmes tangentes que le debug absolute
+            FVector M0 = StartTangent - StartPoint;
+            FVector M1 = EndTangent - EndPoint;
+
+            NewLocation = CalculateHermite(StartPoint, M0, EndPoint, M1, t);
         }
+
 
         ActualTarget->SetActorLocation(NewLocation);
 
