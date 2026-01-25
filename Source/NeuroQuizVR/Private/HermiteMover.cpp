@@ -88,89 +88,72 @@ void AHermiteMover::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
 
-    if (!bDrawDebugCurve || !bDrawDebugInEditor)
+#if WITH_EDITORONLY_DATA
+    if (!EditorLineBatch)
         return;
 
-    UWorld* World = GetWorld();
-    if (!World)
+    // Si debug off -> on nettoie et on sort
+    if (!bDrawDebugCurve || !bDrawDebugInEditor)
+    {
+        EditorLineBatch->Flush();
         return;
+    }
+
+    // IMPORTANT : on flush avant de redessiner => aucune duplication
+    EditorLineBatch->Flush();
 
     AActor* ActualTarget = TargetActor ? TargetActor : this;
 
-    // IMPORTANT : en editor on veut une lifetime > 0 pour voir la courbe
-    float Life = DebugLifetime;
+    // Construire P0/P1/M0/M1 (comme dans ton Tick)
+    FVector P0, P1, M0, M1;
 
     if (bAdditive)
     {
         FVector Base = bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation();
+        P0 = Base;
+        P1 = Base + EndPoint;
 
-        FVector P0 = Base;
-        FVector P1 = Base + EndPoint;
-
-        FVector M0 = StartTangent;
-        FVector M1 = EndTangent - EndPoint;
-
-        // Copie de DrawHermiteDebug mais avec lifetime=Life
-        int Segments = FMath::Max(2, DebugSegments);
-        FVector Prev;
-
-        for (int i = 0; i <= Segments; ++i)
-        {
-            float u = (float)i / (float)Segments;
-            float u2 = u * u;
-            float u3 = u2 * u;
-
-            float H00 = 2 * u3 - 3 * u2 + 1;
-            float H10 = u3 - 2 * u2 + u;
-            float H01 = -2 * u3 + 3 * u2;
-            float H11 = u3 - u2;
-
-            FVector Cur = (H00 * P0) + (H10 * M0) + (H01 * P1) + (H11 * M1);
-
-            if (i > 0) DrawDebugLine(World, Prev, Cur, FColor::Green, false, Life, 0, 2.0f);
-            Prev = Cur;
-        }
-
-        DrawDebugSphere(World, P0, 6.f, 8, FColor::Cyan, false, Life);
-        DrawDebugSphere(World, P1, 6.f, 8, FColor::Cyan, false, Life);
-        DrawDebugLine(World, P0, P0 + M0, FColor::Yellow, false, Life, 0, 1.0f);
-        DrawDebugLine(World, P1, P1 + M1, FColor::Yellow, false, Life, 0, 1.0f);
+        M0 = StartTangent;
+        M1 = EndTangent - EndPoint;
     }
     else
     {
-        FVector P0 = StartPoint;
-        FVector P1 = EndPoint;
+        P0 = StartPoint;
+        P1 = EndPoint;
 
-        FVector M0 = StartTangent - StartPoint;
-        FVector M1 = EndTangent - EndPoint;
-
-        int Segments = FMath::Max(2, DebugSegments);
-        FVector Prev;
-
-        for (int i = 0; i <= Segments; ++i)
-        {
-            float u = (float)i / (float)Segments;
-            float u2 = u * u;
-            float u3 = u2 * u;
-
-            float H00 = 2 * u3 - 3 * u2 + 1;
-            float H10 = u3 - 2 * u2 + u;
-            float H01 = -2 * u3 + 3 * u2;
-            float H11 = u3 - u2;
-
-            FVector Cur = (H00 * P0) + (H10 * M0) + (H01 * P1) + (H11 * M1);
-
-            if (i > 0) DrawDebugLine(World, Prev, Cur, FColor::Green, false, Life, 0, 2.0f);
-            Prev = Cur;
-        }
-
-        DrawDebugSphere(World, P0, 6.f, 8, FColor::Cyan, false, Life);
-        DrawDebugSphere(World, P1, 6.f, 8, FColor::Cyan, false, Life);
-        DrawDebugLine(World, P0, P0 + M0, FColor::Yellow, false, Life, 0, 1.0f);
-        DrawDebugLine(World, P1, P1 + M1, FColor::Yellow, false, Life, 0, 1.0f);
+        M0 = StartTangent - StartPoint;
+        M1 = EndTangent - EndPoint;
     }
+
+    const int Segments = FMath::Max(2, DebugSegments);
+
+    // Dessin de la "courbe" (en fait segments successifs)
+    FVector Prev = P0;
+    for (int i = 1; i <= Segments; ++i)
+    {
+        float u = (float)i / (float)Segments;
+
+        // Hermite via ta fonction (plus clean que dupliquer la formule)
+        FVector Cur = CalculateHermite(P0, M0, P1, M1, u);
+
+        // 0.0f lifetime => "persistant" tant que tu flush pas
+        const float LifeTime = 0.0f;
+        const float Thickness = 3.0f;
+        const uint8 DepthPriority = 0;
+
+        EditorLineBatch->BatchedLines.Add(
+            FBatchedLine(Prev, Cur, FLinearColor::Green, LifeTime, Thickness, DepthPriority)
+        );
+
+        Prev = Cur;
+    }
+
+    // Force refresh (souvent pas nécessaire, mais safe)
+    EditorLineBatch->MarkRenderStateDirty();
+#endif
 }
 #endif
+
 
 
 void AHermiteMover::Tick(float DeltaTime)
