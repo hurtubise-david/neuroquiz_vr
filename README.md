@@ -1,1 +1,1 @@
-# NeuroQuiz_VR
+# NeuroQuiz VR
