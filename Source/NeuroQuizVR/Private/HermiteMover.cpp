@@ -87,7 +87,42 @@ void AHermiteMover::Tick(float DeltaTime)
         // Calcul de la nouvelle position
         AActor* ActualTarget = TargetActor ? TargetActor : this;
 
-        // (optionnel) ease in/out ici si tu l’as ajouté
+        if (bDrawDebugCurve)
+        {
+            UWorld* World = GetWorld();
+
+            if (bAdditive)
+            {
+                // Base (world)
+                FVector Base = bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation();
+
+                // Courbe en world : P0=Base, P1=Base+EndPoint
+                FVector P0 = Base;
+                FVector P1 = Base + EndPoint;
+
+                // Handles => tangentes (vecteurs)
+                // P0 handle : StartTangent est déjà en "delta" si tu le déplaces comme offset
+                FVector M0 = StartTangent;
+
+                // P1 handle : EndTangent est un handle en delta, donc vecteur relatif: (EndTangent - EndPoint)
+                FVector M1 = EndTangent - EndPoint;
+
+                DrawHermiteDebug(World, P0, M0, P1, M1, DebugSegments);
+            }
+            else
+            {
+                // Absolute : P0=StartPoint, P1=EndPoint
+                FVector P0 = StartPoint;
+                FVector P1 = EndPoint;
+
+                // Handles => vecteurs
+                FVector M0 = StartTangent - StartPoint;
+                FVector M1 = EndTangent - EndPoint;
+
+                DrawHermiteDebug(World, P0, M0, P1, M1, DebugSegments);
+            }
+        }
+
 
         FVector NewLocation;
 
