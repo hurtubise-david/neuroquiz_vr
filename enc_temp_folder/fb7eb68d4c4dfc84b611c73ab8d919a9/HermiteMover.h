@@ -47,13 +47,6 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline|Ease", meta = (ClampMin = "0.1", ClampMax = "8.0"))
     float EaseExponent = 2.0f;
 
-    // --- Debugs lines ---
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline|Debug")
-    bool bDrawDebugCurve = true;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline|Debug", meta = (ClampMin = "4", ClampMax = "200"))
-    int DebugSegments = 30;
-
 
     // Durée du mouvement en secondes
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline")

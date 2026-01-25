@@ -31,7 +31,6 @@ void AHermiteMover::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-
     if (bIsMoving)
     {
         CurrentTime += DeltaTime;
