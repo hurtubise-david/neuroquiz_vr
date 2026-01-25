@@ -1,0 +1,12 @@
+exemple dans le BP exemple
+
+Pour implementer WBP_narration:
+	1.creer une var object dans la classe et cast to WBP_Narration
+	2.SetText avec un tableau de Text contenant le texte qu'on veut montrer
+	3.Appeler AdvanceText
+	4.Appeler Activate pour afficher le texte
+	5.Bind AdvanceText à un bouton (genre A)
+
+
+Pour WBP_QCM
+	

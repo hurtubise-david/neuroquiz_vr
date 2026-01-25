@@ -1,0 +1,124 @@
+# -----------------------------
+# Unreal Engine - Fichiers générés automatiquement
+# -----------------------------
+Binaries/
+.vs/
+.vscode/
+.idea/
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.log
+*.tlog
+*.tmp
+*.bak
+
+# -----------------------------
+# Build artifacts
+# -----------------------------
+*.exe
+*.dll
+*.lib
+*.app
+*.ipa
+*.dSYM
+*.so
+*.apk
+*.obb
+*.aab
+*.keystore
+
+# -----------------------------
+# Fichiers de configuration utilisateur
+# (spécifiques à la machine, pas à partager)
+# -----------------------------
+*.user
+*.userprefs
+*.DS_Store
+Thumbs.db
+*_Saved/
+Saved/Backup/
+Saved/Autosaves/
+Saved/Logs/
+Saved/Temp/
+Config/CrashReportClient.ini
+
+# -----------------------------
+# Fichiers de cache Unreal et auto-compile
+# -----------------------------
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/Android/src/
+Build/Android/gradle/
+Build/Android/JavaLibs/
+Build/Android/jni/
+Build/Android/libs/
+Build/Android/res/
+Build/Android/bin/
+Build/Android/gen/
+Source/*/Generated/
+DerivedDataCache/*
+
+# -----------------------------
+# Plugins tiers (facultatif)
+# Tu peux commenter ces lignes si vous avez vos propres plugins maison
+# -----------------------------
+Plugins/*/Intermediate/
+Plugins/*/Binaries/
+Plugins/*/DerivedDataCache/
+Plugins/*/Saved/
+
+# -----------------------------
+# Fichiers locaux Android SDK / NDK / JDK
+# (ne doivent JAMAIS être versionnés)
+# -----------------------------
+/AndroidSDK/
+/AndroidNDK/
+/Java/
+/NDK/
+/SDK/
+/JDK/
+
+# -----------------------------
+# Platformes cibles (Windows, Android, etc.)
+# -----------------------------
+Build/Windows/
+Build/Linux/
+Build/Mac/
+Build/Android/
+
+# -----------------------------
+# Auto-save, backups, temp
+# -----------------------------
+*.autosave
+*.backup
+*_Backup_*.uasset
+*.tmp
+Temp/
+tmp/
+Backup/
+Autosaves/
+
+# -----------------------------
+# Cache shader
+# -----------------------------
+*.pch
+ShaderCache/
+Saved/ShaderDebugInfo/
+
+# -----------------------------
+# Recommandation : garder les fichiers essentiels du projet
+# -----------------------------
+!.gitignore
+!*.uproject
+!Config/
+!Content/
+!Source/
+!*.uasset
+!*.umap
