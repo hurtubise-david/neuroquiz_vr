@@ -30,20 +30,6 @@ void AHermiteMover::BeginPlay()
         }
     }
 
-#if WITH_EDITORONLY_DATA
-    // Assure un root (sinon SetupAttachment peut foirer si RootComponent null)
-    if (!RootComponent)
-    {
-        RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-    }
-
-    EditorLineBatch = CreateDefaultSubobject<ULineBatchComponent>(TEXT("HermiteEditorLineBatch"));
-    EditorLineBatch->SetupAttachment(RootComponent);
-    EditorLineBatch->bHiddenInGame = true;
-    EditorLineBatch->SetIsVisualizationComponent(true); // important: editor visualization
-    EditorLineBatch->bCalculateAccurateBounds = true;
-#endif
-
 }
 
 static void DrawHermiteDebug(UWorld* World, const FVector& P0, const FVector& M0, const FVector& P1, const FVector& M1, int Segments)
@@ -242,23 +228,32 @@ void AHermiteMover::Tick(float DeltaTime)
 }
 
 
-void AHermiteMover::StartMovement()
+AHermiteMover::AHermiteMover()
 {
+    PrimaryActorTick.bCanEverTick = true;
+    bIsMoving = false;
     CurrentTime = 0.0f;
-    bIsMoving = true;
 
-    AActor* ActualTarget = TargetActor ? TargetActor : this;
+    StartTangent = FVector(0, 0, 500);
+    EndTangent = FVector(0, 0, -500);
 
-    if (bAdditive)
+#if WITH_EDITORONLY_DATA
+    // Root garanti
+    if (!RootComponent)
     {
-        BaseLocation = ActualTarget->GetActorLocation();
-        bBaseCaptured = true;
+        RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
     }
-    else
-    {
-        bBaseCaptured = false; 
-    }
+
+    EditorLineBatch = CreateDefaultSubobject<ULineBatchComponent>(TEXT("HermiteEditorLineBatch"));
+    EditorLineBatch->SetupAttachment(RootComponent);
+
+    EditorLineBatch->bHiddenInGame = true;
+    EditorLineBatch->SetIsVisualizationComponent(true);
+    EditorLineBatch->bCalculateAccurateBounds = true;
+    EditorLineBatch->CastShadow = false;
+#endif
 }
+
 
 void AHermiteMover::ResetMovement()
 {
