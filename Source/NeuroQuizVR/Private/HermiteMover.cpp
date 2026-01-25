@@ -16,10 +16,13 @@ void AHermiteMover::BeginPlay()
     Super::BeginPlay();
 
     // Si aucun point n'est défini, on prend la position actuelle comme départ
+    AActor* ActualTarget = TargetActor ? TargetActor : this;
+
     if (StartPoint.IsZero())
     {
-        StartPoint = GetActorLocation();
+        StartPoint = ActualTarget->GetActorLocation();
     }
+
 }
 
 void AHermiteMover::Tick(float DeltaTime)
@@ -34,7 +37,26 @@ void AHermiteMover::Tick(float DeltaTime)
         float t = FMath::Clamp(CurrentTime / Duration, 0.0f, 1.0f);
 
         // Calcul de la nouvelle position
-        FVector NewLocation = CalculateHermite(StartPoint, StartTangent, EndPoint, EndTangent, t);
+        AActor* ActualTarget = TargetActor ? TargetActor : this;
+
+        // Si jamais StartMovement n'a pas été appelé, on capture quand même une base
+        if (!bBaseCaptured)
+        {
+            BaseLocation = ActualTarget->GetActorLocation();
+            bBaseCaptured = true;
+        }
+
+        // Hermite en OFFSET : 0 -> EndPoint (EndPoint devient un déplacement final)
+        FVector Delta = CalculateHermite(
+            FVector::ZeroVector,
+            StartTangent,
+            EndPoint,
+            EndTangent,
+            t
+        );
+
+        FVector NewLocation = BaseLocation + Delta;
+
 
         // Appliquer le mouvement
         if (TargetActor)
@@ -69,7 +91,10 @@ void AHermiteMover::ResetMovement()
 {
     bIsMoving = false;
     CurrentTime = 0.0f;
-    FVector ResetLoc = StartPoint;
+    AActor* ActualTarget = TargetActor ? TargetActor : this;
+
+    FVector ResetLoc = bBaseCaptured ? BaseLocation : StartPoint;
+
 
     if (TargetActor)
     {
