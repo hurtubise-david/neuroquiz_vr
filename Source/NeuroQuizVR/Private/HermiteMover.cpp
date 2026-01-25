@@ -123,7 +123,16 @@ void AHermiteMover::ResetMovement()
     CurrentTime = 0.0f;
     AActor* ActualTarget = TargetActor ? TargetActor : this;
 
-    FVector ResetLoc = bBaseCaptured ? BaseLocation : StartPoint;
+    FVector ResetLoc;
+
+    if (bAdditive)
+    {
+        ResetLoc = bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation();
+    }
+    else
+    {
+        ResetLoc = StartPoint;
+    }
 
 
     if (TargetActor)
