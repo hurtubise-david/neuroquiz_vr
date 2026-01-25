@@ -47,8 +47,6 @@ void AHermiteMover::Tick(float DeltaTime)
         // Calcul de la nouvelle position
         AActor* ActualTarget = TargetActor ? TargetActor : this;
 
-        float t = FMath::Clamp(CurrentTime / Duration, 0.0f, 1.0f);
-
         // (optionnel) ease in/out ici si tu l’as ajouté
 
         FVector NewLocation;
