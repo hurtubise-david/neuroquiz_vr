@@ -15,14 +15,16 @@ void AHermiteMover::BeginPlay()
 {
     Super::BeginPlay();
 
-    // Si aucun point n'est défini, on prend la position actuelle comme départ
     AActor* ActualTarget = TargetActor ? TargetActor : this;
 
-    if (StartPoint.IsZero())
+    // En mode additif, on peut initialiser StartPoint pour aider le reset/debug
+    if (bAdditive)
     {
-        StartPoint = ActualTarget->GetActorLocation();
+        if (StartPoint.IsZero())
+        {
+            StartPoint = ActualTarget->GetActorLocation();
+        }
     }
-
 }
 
 void AHermiteMover::Tick(float DeltaTime)
