@@ -70,96 +70,87 @@ void AHermiteMover::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
+    AActor* ActualTarget = TargetActor ? TargetActor : this;
 
-    if (bIsMoving)
+
+    // 1) DEBUG (si activé)
+    if (bDrawDebugCurve)
     {
-        CurrentTime += DeltaTime;
-
-        // Normaliser le temps entre 0.0 et 1.0
-        float t = FMath::Clamp(CurrentTime / Duration, 0.0f, 1.0f);
-
-        if (bUseEaseInOut)
-        {
-            t = FMath::InterpEaseInOut(0.0f, 1.0f, t, EaseExponent);
-        }
-
-
-        // Calcul de la nouvelle position
-        AActor* ActualTarget = TargetActor ? TargetActor : this;
-
-        if (bDrawDebugCurve)
-        {
-            UWorld* World = GetWorld();
-
-            if (bAdditive)
-            {
-                // Base (world)
-                FVector Base = bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation();
-
-                // Courbe en world : P0=Base, P1=Base+EndPoint
-                FVector P0 = Base;
-                FVector P1 = Base + EndPoint;
-
-                // Handles => tangentes (vecteurs)
-                // P0 handle : StartTangent est déjà en "delta" si tu le déplaces comme offset
-                FVector M0 = StartTangent;
-
-                // P1 handle : EndTangent est un handle en delta, donc vecteur relatif: (EndTangent - EndPoint)
-                FVector M1 = EndTangent - EndPoint;
-
-                DrawHermiteDebug(World, P0, M0, P1, M1, DebugSegments);
-            }
-            else
-            {
-                // Absolute : P0=StartPoint, P1=EndPoint
-                FVector P0 = StartPoint;
-                FVector P1 = EndPoint;
-
-                // Handles => vecteurs
-                FVector M0 = StartTangent - StartPoint;
-                FVector M1 = EndTangent - EndPoint;
-
-                DrawHermiteDebug(World, P0, M0, P1, M1, DebugSegments);
-            }
-        }
-
-
-        FVector NewLocation;
+        UWorld* World = GetWorld();
 
         if (bAdditive)
         {
-            if (!bBaseCaptured)
-            {
-                BaseLocation = ActualTarget->GetActorLocation();
-                bBaseCaptured = true;
-            }
+            // Base (world) : si pas capturé, on prend la position actuelle
+            FVector Base = bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation();
 
-            // mêmes tangentes que le debug additif
-            FVector M0 = StartTangent;            // car P0 = 0
-            FVector M1 = EndTangent - EndPoint;   // handle fin relatif
+            FVector P0 = Base;
+            FVector P1 = Base + EndPoint;
 
-            FVector Delta = CalculateHermite(FVector::ZeroVector, M0, EndPoint, M1, t);
-            NewLocation = BaseLocation + Delta;
+            FVector M0 = StartTangent;          // P0 = 0 en additif
+            FVector M1 = EndTangent - EndPoint; // handle fin relatif
+
+            DrawHermiteDebug(World, P0, M0, P1, M1, DebugSegments);
         }
         else
         {
-            // mêmes tangentes que le debug absolute
+            FVector P0 = StartPoint;
+            FVector P1 = EndPoint;
+
             FVector M0 = StartTangent - StartPoint;
             FVector M1 = EndTangent - EndPoint;
 
-            NewLocation = CalculateHermite(StartPoint, M0, EndPoint, M1, t);
-        }
-
-
-        ActualTarget->SetActorLocation(NewLocation);
-
-        // Fin du mouvement
-        if (CurrentTime >= Duration)
-        {
-            bIsMoving = false;
+            DrawHermiteDebug(World, P0, M0, P1, M1, DebugSegments);
         }
     }
+
+
+    // 2) SI PAS EN MOUVEMENT, ON SORT
+    if (!bIsMoving)
+        return;
+
+
+    // 3) MOUVEMENT
+    CurrentTime += DeltaTime;
+
+    float t = FMath::Clamp(CurrentTime / Duration, 0.0f, 1.0f);
+
+    if (bUseEaseInOut)
+    {
+        t = FMath::InterpEaseInOut(0.0f, 1.0f, t, EaseExponent);
+    }
+
+    FVector NewLocation;
+
+    if (bAdditive)
+    {
+        if (!bBaseCaptured)
+        {
+            BaseLocation = ActualTarget->GetActorLocation();
+            bBaseCaptured = true;
+        }
+
+        FVector M0 = StartTangent;
+        FVector M1 = EndTangent - EndPoint;
+
+        FVector Delta = CalculateHermite(FVector::ZeroVector, M0, EndPoint, M1, t);
+        NewLocation = BaseLocation + Delta;
+    }
+    else
+    {
+        FVector M0 = StartTangent - StartPoint;
+        FVector M1 = EndTangent - EndPoint;
+
+        NewLocation = CalculateHermite(StartPoint, M0, EndPoint, M1, t);
+    }
+
+    ActualTarget->SetActorLocation(NewLocation);
+
+    if (CurrentTime >= Duration)
+    {
+        bIsMoving = false;
+    }
 }
+
 
 void AHermiteMover::StartMovement()
 {
