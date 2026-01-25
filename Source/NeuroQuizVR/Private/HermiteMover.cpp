@@ -3,16 +3,29 @@
 #include "Components/LineBatchComponent.h"
 
 
-
 AHermiteMover::AHermiteMover()
 {
     PrimaryActorTick.bCanEverTick = true;
     bIsMoving = false;
     CurrentTime = 0.0f;
 
-    // Valeurs par défaut pour la démo
-    StartTangent = FVector(0, 0, 500); // Monte vers le haut au début
-    EndTangent = FVector(0, 0, -500);  // Descend à la fin
+    StartTangent = FVector(0, 0, 500);
+    EndTangent = FVector(0, 0, -500);
+
+#if WITH_EDITORONLY_DATA
+    if (!RootComponent)
+    {
+        RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+    }
+
+    EditorLineBatch = CreateDefaultSubobject<ULineBatchComponent>(TEXT("HermiteEditorLineBatch"));
+    EditorLineBatch->SetupAttachment(RootComponent);
+
+    EditorLineBatch->bHiddenInGame = true;
+    EditorLineBatch->SetIsVisualizationComponent(true);
+    EditorLineBatch->bCalculateAccurateBounds = true;
+    EditorLineBatch->CastShadow = false;
+#endif
 }
 
 void AHermiteMover::BeginPlay()
@@ -73,6 +86,13 @@ static void DrawHermiteDebug(UWorld* World, const FVector& P0, const FVector& M0
 void AHermiteMover::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
+
+#if WITH_EDITORONLY_DATA
+    if (EditorLineBatch && !EditorLineBatch->IsRegistered())
+    {
+        EditorLineBatch->RegisterComponent();
+    }
+#endif
 
 #if WITH_EDITORONLY_DATA
     if (!EditorLineBatch)
@@ -149,37 +169,6 @@ void AHermiteMover::Tick(float DeltaTime)
     AActor* ActualTarget = TargetActor ? TargetActor : this;
 
 
-    // 1) DEBUG (si activé)
-    if (bDrawDebugCurve)
-    {
-        UWorld* World = GetWorld();
-
-        if (bAdditive)
-        {
-            // Base (world) : si pas capturé, on prend la position actuelle
-            FVector Base = bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation();
-
-            FVector P0 = Base;
-            FVector P1 = Base + EndPoint;
-
-            FVector M0 = StartTangent;          // P0 = 0 en additif
-            FVector M1 = EndTangent - EndPoint; // handle fin relatif
-
-            DrawHermiteDebug(World, P0, M0, P1, M1, DebugSegments);
-        }
-        else
-        {
-            FVector P0 = StartPoint;
-            FVector P1 = EndPoint;
-
-            FVector M0 = StartTangent - StartPoint;
-            FVector M1 = EndTangent - EndPoint;
-
-            DrawHermiteDebug(World, P0, M0, P1, M1, DebugSegments);
-        }
-    }
-
-
     // 2) SI PAS EN MOUVEMENT, ON SORT
     if (!bIsMoving)
         return;
@@ -226,34 +215,6 @@ void AHermiteMover::Tick(float DeltaTime)
         bIsMoving = false;
     }
 }
-
-
-AHermiteMover::AHermiteMover()
-{
-    PrimaryActorTick.bCanEverTick = true;
-    bIsMoving = false;
-    CurrentTime = 0.0f;
-
-    StartTangent = FVector(0, 0, 500);
-    EndTangent = FVector(0, 0, -500);
-
-#if WITH_EDITORONLY_DATA
-    // Root garanti
-    if (!RootComponent)
-    {
-        RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-    }
-
-    EditorLineBatch = CreateDefaultSubobject<ULineBatchComponent>(TEXT("HermiteEditorLineBatch"));
-    EditorLineBatch->SetupAttachment(RootComponent);
-
-    EditorLineBatch->bHiddenInGame = true;
-    EditorLineBatch->SetIsVisualizationComponent(true);
-    EditorLineBatch->bCalculateAccurateBounds = true;
-    EditorLineBatch->CastShadow = false;
-#endif
-}
-
 
 void AHermiteMover::ResetMovement()
 {
