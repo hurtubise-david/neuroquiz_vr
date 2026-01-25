@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/LineBatchComponent.h"
 #include "HermiteMover.generated.h"
 
 UCLASS()
@@ -92,4 +93,10 @@ private:
 
     // La fonction mathématique pure d'Hermite
     FVector CalculateHermite(FVector P0, FVector M0, FVector P1, FVector M1, float T);
+
+#if WITH_EDITORONLY_DATA
+    UPROPERTY(Transient)
+    ULineBatchComponent* EditorLineBatch = nullptr;
+#endif
+
 };
