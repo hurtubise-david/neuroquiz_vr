@@ -5,7 +5,7 @@
 #include "HermiteMover.generated.h"
 
 UCLASS()
-class NEUROQUIZ_VR_API AHermiteMover : public AActor
+class NEUROQUIZVR_API AHermiteMover : public AActor
 {
     GENERATED_BODY()
 
