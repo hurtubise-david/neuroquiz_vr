@@ -123,28 +123,14 @@ void AHermiteMover::ResetMovement()
 {
     bIsMoving = false;
     CurrentTime = 0.0f;
+
     AActor* ActualTarget = TargetActor ? TargetActor : this;
 
-    FVector ResetLoc;
+    FVector ResetLoc = bAdditive
+        ? (bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation())
+        : StartPoint;
 
-    if (bAdditive)
-    {
-        ResetLoc = bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation();
-    }
-    else
-    {
-        ResetLoc = StartPoint;
-    }
-
-
-    if (TargetActor)
-    {
-        TargetActor->SetActorLocation(ResetLoc);
-    }
-    else
-    {
-        SetActorLocation(ResetLoc);
-    }
+    ActualTarget->SetActorLocation(ResetLoc);
 }
 
 // La formule d'Hermite Cubique
