@@ -1,4 +1,6 @@
 #include "HermiteMover.h"
+#include "DrawDebugHelpers.h"
+
 
 AHermiteMover::AHermiteMover()
 {
