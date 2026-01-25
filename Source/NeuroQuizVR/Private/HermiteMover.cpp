@@ -70,19 +70,6 @@ void AHermiteMover::Tick(float DeltaTime)
 
         ActualTarget->SetActorLocation(NewLocation);
 
-
-
-
-        // Appliquer le mouvement
-        if (TargetActor)
-        {
-            TargetActor->SetActorLocation(NewLocation);
-        }
-        else
-        {
-            SetActorLocation(NewLocation);
-        }
-
         // Fin du mouvement
         if (CurrentTime >= Duration)
         {
