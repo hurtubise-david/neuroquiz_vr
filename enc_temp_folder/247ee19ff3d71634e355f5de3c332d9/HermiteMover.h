@@ -36,10 +36,6 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline", meta = (MakeEditWidget = true))
     FVector EndTangent;
 
-    // Mode additif : EndPoint est interprété comme un OFFSET (Delta) plutôt qu'un point world
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline")
-    bool bAdditive = true;
-
     // Durée du mouvement en secondes
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline")
     float Duration = 3.0f;
@@ -59,10 +55,6 @@ public:
 private:
     float CurrentTime;
     bool bIsMoving;
-
-    // capturée au StartMovement
-    FVector BaseLocation;
-    bool bBaseCaptured = false;
 
     // La fonction mathématique pure d'Hermite
     FVector CalculateHermite(FVector P0, FVector M0, FVector P1, FVector M1, float T);

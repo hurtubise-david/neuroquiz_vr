@@ -58,11 +58,6 @@ void AHermiteMover::StartMovement()
 {
     CurrentTime = 0.0f;
     bIsMoving = true;
-
-    AActor* ActualTarget = TargetActor ? TargetActor : this;
-
-    BaseLocation = ActualTarget->GetActorLocation();
-    bBaseCaptured = true;
 }
 
 void AHermiteMover::ResetMovement()
