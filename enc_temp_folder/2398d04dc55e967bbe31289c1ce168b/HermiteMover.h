@@ -15,11 +15,6 @@ public:
 protected:
     virtual void BeginPlay() override;
 
-#if WITH_EDITOR
-    virtual void OnConstruction(const FTransform& Transform) override;
-#endif
-
-
 public:
     virtual void Tick(float DeltaTime) override;
 
@@ -58,12 +53,6 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline|Debug", meta = (ClampMin = "4", ClampMax = "200"))
     int DebugSegments = 30;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline|Debug")
-    bool bDrawDebugInEditor = true;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline|Debug", meta = (ClampMin = "0.01", ClampMax = "10.0"))
-    float DebugLifetime = 0.25f;
 
 
     // Durée du mouvement en secondes
