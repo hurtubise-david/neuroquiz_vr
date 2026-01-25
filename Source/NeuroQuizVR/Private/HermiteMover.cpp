@@ -106,8 +106,15 @@ void AHermiteMover::StartMovement()
 
     AActor* ActualTarget = TargetActor ? TargetActor : this;
 
-    BaseLocation = ActualTarget->GetActorLocation();
-    bBaseCaptured = true;
+    if (bAdditive)
+    {
+        BaseLocation = ActualTarget->GetActorLocation();
+        bBaseCaptured = true;
+    }
+    else
+    {
+        bBaseCaptured = false; 
+    }
 }
 
 void AHermiteMover::ResetMovement()
