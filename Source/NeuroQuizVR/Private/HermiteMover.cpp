@@ -216,6 +216,25 @@ void AHermiteMover::Tick(float DeltaTime)
     }
 }
 
+void AHermiteMover::StartMovement()
+{
+    CurrentTime = 0.0f;
+    bIsMoving = true;
+
+    AActor* ActualTarget = TargetActor ? TargetActor : this;
+
+    if (bAdditive)
+    {
+        BaseLocation = ActualTarget->GetActorLocation();
+        bBaseCaptured = true;
+    }
+    else
+    {
+        bBaseCaptured = false;
+    }
+}
+
+
 void AHermiteMover::ResetMovement()
 {
     bIsMoving = false;

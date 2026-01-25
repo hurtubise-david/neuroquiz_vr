@@ -2,8 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Components/LineBatchComponent.h"
 #include "HermiteMover.generated.h"
+
+class ULineBatchComponent;
 
 UCLASS()
 class NEUROQUIZVR_API AHermiteMover : public AActor
