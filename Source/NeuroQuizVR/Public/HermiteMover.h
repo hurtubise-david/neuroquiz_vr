@@ -40,6 +40,14 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline")
     bool bAdditive = true;
 
+    // --- Ease In / Ease Out (timing) ---
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline|Ease")
+    bool bUseEaseInOut = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline|Ease", meta = (ClampMin = "0.1", ClampMax = "8.0"))
+    float EaseExponent = 2.0f;
+
+
     // Durée du mouvement en secondes
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline")
     float Duration = 3.0f;
