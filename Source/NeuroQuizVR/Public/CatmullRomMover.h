@@ -38,11 +38,13 @@ public:
 
     // --- Contrôles ---
 
-    UFUNCTION(BlueprintCallable, Category = "Catmull-Rom Spline")
-    void StartMovement();
+    // TODO : DEFINE THESE TO FIX BUILD
 
-    UFUNCTION(BlueprintCallable, Category = "Catmull-Rom Spline")
-    void ResetMovement();
+    //UFUNCTION(BlueprintCallable, Category = "Catmull-Rom Spline")
+    //void StartMovement();
+
+    //UFUNCTION(BlueprintCallable, Category = "Catmull-Rom Spline")
+    //void ResetMovement();
 
 private:
     float CurrentTime;
