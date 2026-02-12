@@ -1,20 +1,18 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "CatmullRomMover.generated.h"
 
-/**
- * 
- */
+class ULineBatchComponent;
+
 UCLASS()
-class NEUROQUIZVR_API CatmullRomMover : public AActor
+class NEUROQUIZVR_API ACatmullRomMover : public AActor
 {
     GENERATED_BODY()
 
 public:
-	CatmullRomMover();
+    ACatmullRomMover();
 
 protected:
     virtual void BeginPlay() override;
@@ -34,7 +32,7 @@ public:
 
     // La tangente à l'arrivée (M1) - C'est la vitesse d'arrivée
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CatmullRom Spline", meta = (ClampMin = "0.0", ClampMax = "1.0"))
-    TArray<FVector> bTension;
+    float bTension;
 
     // Mode additif : EndPoint est interprété comme un OFFSET (Delta) plutôt qu'un point world
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CatmullRom Spline")
