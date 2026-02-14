@@ -1,4 +1,4 @@
-#include "CatmullRomMover.h"
+ï»¿#include "CatmullRomMover.h"
 #include "HermiteMover.h"
 #include "DrawDebugHelpers.h"
 #include "Components/LineBatchComponent.h"
@@ -71,7 +71,7 @@ static void DrawCatmullRomDebug(UWorld* World, const FVector& P0, const FVector&
         Prev = Cur;
     }
 
-    // Debug des poignées (visuel clair)
+    // Debug des poignÃ©es (visuel clair)
     DrawDebugSphere(World, P0, 6.f, 8, FColor::Cyan, false, 0.0f);
     DrawDebugSphere(World, P1, 6.f, 8, FColor::Cyan, false, 0.0f);
     DrawDebugLine(World, P0, P0 + M0, FColor::Yellow, false, 0.0f, 0, 1.0f);
@@ -139,7 +139,7 @@ void ACatmullRomMover::OnConstruction(const FTransform& Transform)
         }
     }
 
-    // Force refresh (souvent pas nécessaire, mais safe)
+    // Force refresh (souvent pas nÃ©cessaire, mais safe)
     EditorLineBatch->MarkRenderStateDirty();
 #endif
 }
@@ -167,6 +167,13 @@ void ACatmullRomMover::Tick(float DeltaTime)
     int nbSegments = bControlPoints.Num() - 1;
     int currentSegment = FMath::Clamp(FMath::FloorToInt(t * nbSegments), 0, nbSegments - 1);
 
+    float tLocal = FMath::Fmod(t * nbSegments, 1.0f);
+
+    if (currentSegment == nbSegments - 1 && t >= 1.0f)
+    {
+        tLocal = 1.0f;
+    }
+
     if (bUseEaseInOut)
     {
         t = FMath::InterpEaseInOut(0.0f, 1.0f, t, EaseExponent);
@@ -182,12 +189,12 @@ void ACatmullRomMover::Tick(float DeltaTime)
             bBaseCaptured = true;
         }
 
-        FVector Delta = CalculateSegmentWithHermit(currentSegment, t);
+        FVector Delta = CalculateSegmentWithHermit(currentSegment, tLocal);
         NewLocation = BaseLocation + Delta;
     }
     else
     {
-        NewLocation = CalculateSegmentWithHermit(currentSegment, t);
+        NewLocation = CalculateSegmentWithHermit(currentSegment, tLocal);
     }
 
     ActualTarget->SetActorLocation(NewLocation);
@@ -266,11 +273,11 @@ FVector ACatmullRomMover::CalculateSegmentWithHermit(int i, float t) {
 
     // Les 4 fonctions de base d'Hermite
     float H00 = 2 * t3 - 3 * t2 + 1;      // Influence de p0
-    float H10 = t3 - 2 * t2 + t;          // Influence de t0 (Tangente Départ)
+    float H10 = t3 - 2 * t2 + t;          // Influence de t0 (Tangente DÃ©part)
     float H01 = -2 * t3 + 3 * t2;         // Influence de p1
-    float H11 = t3 - t2;                  // Influence de t1 (Tangente Arrivée)
+    float H11 = t3 - t2;                  // Influence de t1 (Tangente ArrivÃ©e)
 
-    // Combinaison linéaire
+    // Combinaison linÃ©aire
     FVector Result = (H00 * p0) + (H10 * t0) + (H01 * p1) + (H11 * t1);
 
     return Result;
