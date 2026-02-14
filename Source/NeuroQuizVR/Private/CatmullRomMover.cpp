@@ -44,7 +44,38 @@ void ACatmullRomMover::BeginPlay()
 
 static void DrawCatmullRomDebug(UWorld* World, const FVector& P0, const FVector& M0, const FVector& P1, const FVector& M1, int Segments)
 {
+    if (!World) return;
+    Segments = FMath::Max(2, Segments);
 
+    FVector Prev = FVector::ZeroVector;
+
+    for (int i = 0; i <= Segments; ++i)
+    {
+        float u = (float)i / (float)Segments;
+
+        // Hermite (copie de CalculateHermite mais en static)
+        float u2 = u * u;
+        float u3 = u2 * u;
+
+        float H00 = 2 * u3 - 3 * u2 + 1;
+        float H10 = u3 - 2 * u2 + u;
+        float H01 = -2 * u3 + 3 * u2;
+        float H11 = u3 - u2;
+
+        FVector Cur = (H00 * P0) + (H10 * M0) + (H01 * P1) + (H11 * M1);
+
+        if (i > 0)
+        {
+            DrawDebugLine(World, Prev, Cur, FColor::Green, false, 0.0f, 0, 2.0f);
+        }
+        Prev = Cur;
+    }
+
+    // Debug des poignées (visuel clair)
+    DrawDebugSphere(World, P0, 6.f, 8, FColor::Cyan, false, 0.0f);
+    DrawDebugSphere(World, P1, 6.f, 8, FColor::Cyan, false, 0.0f);
+    DrawDebugLine(World, P0, P0 + M0, FColor::Yellow, false, 0.0f, 0, 1.0f);
+    DrawDebugLine(World, P1, P1 + M1, FColor::Yellow, false, 0.0f, 0, 1.0f);
 }
 
 
@@ -52,11 +83,67 @@ static void DrawCatmullRomDebug(UWorld* World, const FVector& P0, const FVector&
 void ACatmullRomMover::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
-
-}
+#if WITH_EDITORONLY_DATA
+    if (EditorLineBatch && !EditorLineBatch->IsRegistered())
+    {
+        EditorLineBatch->RegisterComponent();
+    }
 #endif
 
+#if WITH_EDITORONLY_DATA
+    if (!EditorLineBatch)
+        return;
 
+    // Si debug off -> on nettoie et on sort
+    if (!bDrawDebugCurve || !bDrawDebugInEditor)
+    {
+        EditorLineBatch->Flush();
+        return;
+    }
+
+    // IMPORTANT : on flush avant de redessiner => aucune duplication
+    EditorLineBatch->Flush();
+
+    if (bControlPoints.Num() < 2)
+        return;
+
+    int nbSegments = bControlPoints.Num() - 1;
+
+    AActor* ActualTarget = TargetActor ? TargetActor : this;
+
+    const int Segments = FMath::Max(2, DebugSegments);
+
+    // Pour chaque segment de la spline
+    for (int segmentIndex = 0; segmentIndex < nbSegments; ++segmentIndex)
+    {
+        FVector Prev = bControlPoints[segmentIndex];
+
+        //Divise le segment
+        for (int i = 1; i <= Segments; ++i)
+        {
+            float t = (float)i / (float)Segments;
+
+            // CatmullRom via ta fonction (plus clean que dupliquer la formule)
+            FVector Cur = CalculateSegmentWithHermit(segmentIndex, t);
+
+            // 0.0f lifetime => "persistant" tant que tu flush pas
+            const float LifeTime = 0.0f;
+            const float Thickness = 3.0f;
+            const uint8 DepthPriority = 0;
+
+            EditorLineBatch->BatchedLines.Add(
+                FBatchedLine(Prev, Cur, FLinearColor::Green, LifeTime, Thickness, DepthPriority)
+            );
+
+            Prev = Cur;
+        }
+    }
+
+    // Force refresh (souvent pas nécessaire, mais safe)
+    EditorLineBatch->MarkRenderStateDirty();
+#endif
+}
+#endif
 
 void ACatmullRomMover::Tick(float DeltaTime)
 {
@@ -146,7 +233,7 @@ void ACatmullRomMover::ResetMovement()
 
 FVector ACatmullRomMover::CalculateTangent(int i) {
     int size = bControlPoints.Num();
-    
+
     // 1) SI MOINS QUE 2 POINTS DE CONTROLE, ON SORT
     if (size < 2)
         return FVector::ZeroVector;
