@@ -1,5 +1,3 @@
-
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -11,30 +9,29 @@ class ULineBatchComponent;
 UCLASS()
 class NEUROQUIZVR_API ACatmullMover : public AActor
 {
-	GENERATED_BODY()
-	
-public:	
+    GENERATED_BODY()
+
+public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CatmullRom")
     TArray<FVector> ControlPoints;
-    TArray<FVector> TangentPoints;
 
-	// Sets default values for this actor's properties
-	ACatmullMover();
+    // Sets default values for this actor's properties
+    ACatmullMover();
 
 protected:
     UPROPERTY(Transient)
     TArray<FVector> Tangents;
 
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+    // Called when the game starts or when spawned
+    virtual void BeginPlay() override;
 
 #if WITH_EDITOR
-	virtual void OnConstruction(const FTransform& Transform) override;
+    virtual void OnConstruction(const FTransform& Transform) override;
 #endif
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+public:
+    // Called every frame
+    virtual void Tick(float DeltaTime) override;
 
     // --- Configuration ---
 
@@ -45,6 +42,11 @@ public:
     // La tangente au départ (M0) - C'est la vitesse de départ
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull Spline", meta = (MakeEditWidget = true))
     FVector StartTangent;
+
+
+    //// Le point de départ (P0)
+    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline", meta = (MakeEditWidget = true))
+    //TArray<FVector> Points;
 
     // Le point d'arrivée (P1)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull Spline", meta = (MakeEditWidget = true))
@@ -96,21 +98,31 @@ public:
     void ResetMovement();
 
 private:
-	float CurrentTime;
-	bool bIsMoving;
+    float CurrentTime;
+    bool bIsMoving;
 
-	// capturée au StartMovement
-	FVector BaseLocation;
-	bool bBaseCaptured = false;
+    // capturée au StartMovement
+    FVector BaseLocation;
+    bool bBaseCaptured = false;
 
     void GetTangent(TArray<FVector>& points, float tension);
 
-	// La fonction mathématique pure de Catmull
-	FVector CalculateCatmull(FVector P0, FVector P1, FVector P2, FVector P3, float T);
+    // La fonction mathématique pure de Catmull
+    FVector CalculateCatmull(FVector P0, FVector P1, FVector P2, FVector P3, float T);
+
+    // La fonction mathématique pure d'Hermite
+    FVector CalculateHermite(FVector P0, FVector M0, FVector P1, FVector M1, float T);
+
+    FVector CalculateCatmullRomTangent(FVector P0, FVector P1);
+
+    FVector CalculateCatmullRom(FVector Pprev, FVector P0, FVector P1, FVector Pnext, float t);
 
 #if WITH_EDITORONLY_DATA
     UPROPERTY(Transient)
     ULineBatchComponent* EditorLineBatch = nullptr;
 #endif
-	
+
 };
+
+
+
