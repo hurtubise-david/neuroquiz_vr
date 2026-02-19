@@ -8,7 +8,7 @@ ACatmullMover::ACatmullMover()
     PrimaryActorTick.bCanEverTick = true;
     bIsMoving = false;
     CurrentTime = 0.0f;
-    PrimaryActorTick.bCanEverTick = false;
+    //PrimaryActorTick.bCanEverTick = false;
 
     PreviewSpline = CreateDefaultSubobject<USplineComponent>(TEXT("PreviewSpline"));
     SetRootComponent(PreviewSpline);
@@ -58,6 +58,7 @@ void ACatmullMover::BeginPlay()
 
     AActor* ActualTarget = TargetActor ? TargetActor : this;
 
+    StartMovement();
     //ActivatedTriggers.Init(false, TriggerPercents.Num());
     //// En mode additif, on peut initialiser StartPoint pour aider le reset/debug
     //if (bAdditive)
@@ -75,32 +76,32 @@ void ACatmullMover::BeginPlay()
 void ACatmullMover::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
-#if WITH_EDITORONLY_DATA
-    if (EditorLineBatch && !EditorLineBatch->IsRegistered())
-    {
-        EditorLineBatch->RegisterComponent();
-    }
-#endif
-
-#if WITH_EDITORONLY_DATA
-    if (!EditorLineBatch)
-        return;
-    // Si debug off -> on nettoie et on sort
-    if (!bDrawDebugCurve || !bDrawDebugInEditor)
-    {
-        EditorLineBatch->Flush();
-        return;
-    }
-
+//#if WITH_EDITORONLY_DATA
+//    if (EditorLineBatch && !EditorLineBatch->IsRegistered())
+//    {
+//        EditorLineBatch->RegisterComponent();
+//    }
+//#endif
+//
+//#if WITH_EDITORONLY_DATA
+//    if (!EditorLineBatch)
+//        return;
+//    // Si debug off -> on nettoie et on sort
+//    if (!bDrawDebugCurve || !bDrawDebugInEditor)
+//    {
+//        EditorLineBatch->Flush();
+//        return;
+//    }
+    AActor* ActualTarget = TargetActor ? TargetActor : this;
     PreviewSpline->ClearSplinePoints(false);
-
+    FVector Base = bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation();
     const int32 NumSegments = DebugSegments;
     if (NumSegments <= 0 || SamplesPerSegment < 2)
     {
         // Just show control points if any
-        for (int32 i = 0; i < ControlPoints.Num(); ++i)
+        for (int32 i = 0; i < Points.Num(); ++i)
         {
-            const FVector WorldPos = Transform.TransformPosition(ControlPoints[i]);
+            const FVector WorldPos = Transform.TransformPosition(Points[i] + Base);
             PreviewSpline->AddSplinePoint(WorldPos, ESplineCoordinateSpace::World, false);
         }
         PreviewSpline->SetClosedLoop(bClosedLoop, false);
@@ -114,7 +115,7 @@ void ACatmullMover::OnConstruction(const FTransform& Transform)
         for (int32 SampleIndex = 0; SampleIndex < SamplesPerSegment; ++SampleIndex)
         {
             const float Alpha = static_cast<float>(SampleIndex) / (SamplesPerSegment - 1);
-            const FVector LocalPos = CalculateCatmull(SegmentIndex, Alpha);
+            const FVector LocalPos = CalculateCatmull(SegmentIndex, Alpha) + Base;
             const FVector WorldPos = Transform.TransformPosition(LocalPos);
 
             PreviewSpline->AddSplinePoint(WorldPos, ESplineCoordinateSpace::World, false);
@@ -123,11 +124,11 @@ void ACatmullMover::OnConstruction(const FTransform& Transform)
 
     PreviewSpline->SetClosedLoop(bClosedLoop, false);
     PreviewSpline->UpdateSpline();
-
+    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Construction DOne"));
 
 #endif
 }
-#endif
+//#endif
 
 // Called every frame
 void ACatmullMover::Tick(float DeltaTime)
@@ -145,34 +146,32 @@ void ACatmullMover::Tick(float DeltaTime)
     // 3) MOUVEMENT
     CurrentTime += DeltaTime;
 
-    float t = FMath::Clamp(CurrentTime / Duration, 0.0f, 1.0f);
-
-    
-    /*if (CurrentTime >= Duration)
-    {
-        bIsMoving = false;
-    }*/
-    if (bUseEaseInOut)
-    {
-        t = FMath::InterpEaseInOut(0.0f, 1.0f, t, EaseExponent);
-    }
     if (CurrentTime >= Duration)
     {
         CurrentTime = Duration;
         bIsMoving = false;
        // OnAnimationEnded();
     }
-    const float InterpAlongSpline = CurrentTime / Duration;
-    //ActualTarget->SetActorLocation(GetPositionInSpline(InterpAlongSpline));
-    const int IndexSegment = FMath::FloorToInt(InterpAlongSpline * DebugSegments);
-    float interSegment = (InterpAlongSpline * DebugSegments) - IndexSegment;
+    // Normalized progress along the whole spline
+    const float InterpAlongSpline = CurrentTime / Duration; // 0..1
 
+    // Number of Catmull–Rom segments
+    const int32 NumSegments = DebugSegments; // or GetNumSegments()
 
-    if (bIsMoving) {
-        FVector NewLocation = CalculateCatmull(IndexSegment, interSegment);
-        ActualTarget->SetActorLocation(NewLocation);
-    }
+    // Convert global T (0..1) to segment + localT
+    float GlobalT = InterpAlongSpline * NumSegments;
 
+    // Clamp to avoid going out of bounds at the end
+    int32 SegmentIndex = FMath::Clamp(FMath::FloorToInt(GlobalT), 0, NumSegments - 1);
+
+    float LocalT = GlobalT - SegmentIndex; // fractional part
+
+    // Evaluate Catmull–Rom
+    FVector NewLocation = CalculateCatmull(SegmentIndex, LocalT);
+
+    ActualTarget->SetActorLocation(NewLocation);
+
+    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Tick Done"));
     
 }
 
@@ -180,8 +179,8 @@ void ACatmullMover::StartMovement()
 {
     CurrentTime = 0.0f;
     bIsMoving = true;
-
-    AActor* ActualTarget = TargetActor ? TargetActor : this;
+    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Movement started"));
+    /*AActor* ActualTarget = TargetActor ? TargetActor : this;
 
     if (bAdditive)
     {
@@ -191,7 +190,7 @@ void ACatmullMover::StartMovement()
     else
     {
         bBaseCaptured = false;
-    }
+    }*/
 }
 
 
@@ -200,13 +199,13 @@ void ACatmullMover::ResetMovement()
     bIsMoving = false;
     CurrentTime = 0.0f;
 
-    AActor* ActualTarget = TargetActor ? TargetActor : this;
+    /*AActor* ActualTarget = TargetActor ? TargetActor : this;
 
     FVector ResetLoc = bAdditive
         ? (bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation())
         : FVector().Zero();
 
-    ActualTarget->SetActorLocation(ResetLoc);
+    ActualTarget->SetActorLocation(ResetLoc);*/
 }
 
 FVector ACatmullMover::CalculateCatmull(int32 SegmentIndex, float T) {
@@ -246,10 +245,10 @@ FVector ACatmullMover::CalculateCatmull(int32 SegmentIndex, float T) {
     I3 = WrapIndex(SegmentIndex + 2);
 
 
-    const FVector& P0 = ControlPoints[I0];
-    const FVector& P1 = ControlPoints[I1];
-    const FVector& P2 = ControlPoints[I2];
-    const FVector& P3 = ControlPoints[I3];
+    const FVector& P0 = Points[I0];
+    const FVector& P1 = Points[I1];
+    const FVector& P2 = Points[I2];
+    const FVector& P3 = Points[I3];
 
     if (T < 0.0f) T = 0.0f;
     if (T > 1.0f) T = 1.0f;
