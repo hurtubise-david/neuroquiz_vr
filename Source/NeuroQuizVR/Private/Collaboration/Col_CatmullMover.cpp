@@ -12,7 +12,14 @@ ACol_CatmullMover::ACol_CatmullMover()
 void ACol_CatmullMover::BeginPlay()
 {
 	Super::BeginPlay();
-	ActualTarget = TargetActor ? TargetActor : this;
+	
+	if (TargetActors.IsEmpty())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("No target assigned to Catmull Mover"));
+		bIsMoving = false;
+		return;
+	}
+	
 	ActivatedTriggers.Init(false, TriggerPercents.Num());
 	InitSpline();
 }
@@ -50,9 +57,15 @@ void ACol_CatmullMover::Tick(float DeltaTime)
 		CurrentTime = Duration;
 		bIsMoving = false;
 		OnAnimationEnded();
+		return;
 	}
 	
-	const float InterpAlongSpline = CurrentTime / Duration;
+	float InterpAlongSpline = FMath::Clamp(CurrentTime / Duration, 0.0f, 1.0f);
+	
+	if (bUseEaseInOut)
+	{
+		InterpAlongSpline = FMath::InterpEaseInOut(0.0f, 1.0f, InterpAlongSpline, EaseExponent);
+	}
 
 	for (int i = 0; i < TriggerPercents.Num(); ++i)
 	{	
@@ -62,8 +75,11 @@ void ACol_CatmullMover::Tick(float DeltaTime)
 			OnSplinePercentReached(InterpAlongSpline);
 		}
 	}
-	
-	ActualTarget->SetActorLocation(GetPositionInSpline(InterpAlongSpline));
+
+	for (const auto Actor : TargetActors)
+	{
+		Actor->SetActorLocation(GetPositionInSpline(InterpAlongSpline));
+	}
 }
 
 #if WITH_EDITOR
@@ -86,11 +102,8 @@ void ACol_CatmullMover::OnConstruction(const FTransform& Transform)
         return;
     
     FlushPersistentDebugLines(World);
-    
-	FTransform ActorTransform = TargetActor
-	? TargetActor->GetActorTransform()
-	: GetActorTransform();
 
+	const FTransform ActorTransform = GetActorTransform();
     
     for (int32 CurrentSegment = 0; CurrentSegment < NumSegments; CurrentSegment++)
     {

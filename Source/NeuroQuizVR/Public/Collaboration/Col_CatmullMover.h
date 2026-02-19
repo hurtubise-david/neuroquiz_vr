@@ -51,16 +51,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neuro|Catmull Spline")
 	float Duration = 3.0f;
 	
-	//@TODO: Implémenter le looping
-	//@TODO: Ajouter le ease in/out
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neuro|Catmull Spline")
-	bool bLoop = false;
+	bool bUseEaseInOut = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neuro|Catmull Spline", meta = (ClampMin = "0.1", ClampMax = "8.0"))
+	float EaseExponent = 2.0f;
 	
 	UPROPERTY(EditAnywhere, Category = "Neuro|Catmull Spline")
 	float Tension = 0.5f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neuro|Catmull Spline")
-	AActor* TargetActor;
+	TArray<TObjectPtr<AActor>> TargetActors;
 	
 	// --- Debugs lines ---
 	UPROPERTY(EditAnywhere, Category = "Neuro|Catmull Spline|Debug")
@@ -73,9 +74,6 @@ protected:
 	bool bDrawDebugInEditor = true;
 
 private:	
-		
-	UPROPERTY()
-	TObjectPtr<AActor> ActualTarget;
 	
 	TArray<FVector> PointsWithControls;
 	
