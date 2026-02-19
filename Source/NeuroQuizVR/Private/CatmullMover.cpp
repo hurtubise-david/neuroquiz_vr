@@ -217,15 +217,15 @@ FVector ACatmullMover::CalculateCatmull(int32 SegmentIndex, float T) {
 
     const int32 NumPoints = Points.Num();
 
-    if (NumPoints < 4)
-    {
-        // Fallback: clamp indices if not enough points
-        I1 = FMath::Clamp(SegmentIndex, 0, NumPoints - 1);
-        I2 = FMath::Clamp(SegmentIndex + 1, 0, NumPoints - 1);
-        I0 = FMath::Clamp(I1 - 1, 0, NumPoints - 1);
-        I3 = FMath::Clamp(I2 + 1, 0, NumPoints - 1);
-        return;
-    }
+    //if (NumPoints < 4)
+    //{
+    //    // Fallback: clamp indices if not enough points
+    //    I1 = FMath::Clamp(SegmentIndex, 0, NumPoints - 1);
+    //    I2 = FMath::Clamp(SegmentIndex + 1, 0, NumPoints - 1);
+    //    I0 = FMath::Clamp(I1 - 1, 0, NumPoints - 1);
+    //    I3 = FMath::Clamp(I2 + 1, 0, NumPoints - 1);
+    //    return;
+    //}
 
     auto WrapIndex = [NumPoints, this](int32 Index) -> int32
         {
