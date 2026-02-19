@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/SplineComponent.h"
 #include "CatmullMover.generated.h"
 
 class ULineBatchComponent;
@@ -19,6 +20,19 @@ public:
     ACatmullMover();
 
 protected:
+    // Spline used only for visualization in the editor / game
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CatmullRom|Components")
+    USplineComponent* PreviewSpline;
+
+    // Number of samples per segment for preview spline
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CatmullRom", meta = (ClampMin = "2", UIMin = "2"))
+    int32 SamplesPerSegment;
+
+    // Whether the spline is closed (wraps around)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CatmullRom")
+    bool bClosedLoop;
+
+
     UPROPERTY(Transient)
     TArray<FVector> Tangents;
 
@@ -35,26 +49,29 @@ public:
 
     // --- Configuration ---
 
-   // Le point de départ (P0)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull Spline", meta = (MakeEditWidget = true))
-    FVector StartPoint;
+    TArray<FVector> Points;
 
-    // La tangente au départ (M0) - C'est la vitesse de départ
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull Spline", meta = (MakeEditWidget = true))
-    FVector StartTangent;
+   //// Le point de départ (P0)
+   // UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull Spline", meta = (MakeEditWidget = true))
+   // FVector StartPoint;
+
+   // // La tangente au départ (M0) - C'est la vitesse de départ
+   // UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull Spline", meta = (MakeEditWidget = true))
+   // FVector StartTangent;
 
 
-    //// Le point de départ (P0)
-    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline", meta = (MakeEditWidget = true))
-    //TArray<FVector> Points;
+   // //// Le point de départ (P0)
+   // //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hermite Spline", meta = (MakeEditWidget = true))
+   // //TArray<FVector> Points;
 
-    // Le point d'arrivée (P1)
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull Spline", meta = (MakeEditWidget = true))
-    FVector EndPoint;
+   // // Le point d'arrivée (P1)
+   // UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull Spline", meta = (MakeEditWidget = true))
+   // FVector EndPoint;
 
-    // La tangente à l'arrivée (M1) - C'est la vitesse d'arrivée
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull Spline", meta = (MakeEditWidget = true))
-    FVector EndTangent;
+   // // La tangente à l'arrivée (M1) - C'est la vitesse d'arrivée
+   // UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull Spline", meta = (MakeEditWidget = true))
+   // FVector EndTangent;
 
     // Mode additif : EndPoint est interprété comme un OFFSET (Delta) plutôt qu'un point world
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull Spline")
@@ -108,14 +125,7 @@ private:
     void GetTangent(TArray<FVector>& points, float tension);
 
     // La fonction mathématique pure de Catmull
-    FVector CalculateCatmull(FVector P0, FVector P1, FVector P2, FVector P3, float T);
-
-    // La fonction mathématique pure d'Hermite
-    FVector CalculateHermite(FVector P0, FVector M0, FVector P1, FVector M1, float T);
-
-    FVector CalculateCatmullRomTangent(FVector P0, FVector P1);
-
-    FVector CalculateCatmullRom(FVector Pprev, FVector P0, FVector P1, FVector Pnext, float t);
+    FVector CalculateCatmull(int32 SegmentIndex, float T);
 
 #if WITH_EDITORONLY_DATA
     UPROPERTY(Transient)

@@ -8,24 +8,46 @@ ACatmullMover::ACatmullMover()
     PrimaryActorTick.bCanEverTick = true;
     bIsMoving = false;
     CurrentTime = 0.0f;
+    PrimaryActorTick.bCanEverTick = false;
 
+    PreviewSpline = CreateDefaultSubobject<USplineComponent>(TEXT("PreviewSpline"));
+    SetRootComponent(PreviewSpline);
+
+    PreviewSpline->bDrawDebug = true;
+    PreviewSpline->SetClosedLoop(false);
+
+    SamplesPerSegment = 16;
+    bClosedLoop = false;
+
+    // Example default control points (can be removed)
+    Points.Add(FVector(0.f, 0.f, 0.f));
+    Points.Add(FVector(200.f, 0.f, 0.f));
+    Points.Add(FVector(400.f, 200.f, 0.f));
+    Points.Add(FVector(600.f, 0.f, 0.f));
+
+    /*
     StartTangent = FVector(0, 0, 500);
     EndTangent = FVector(0, 0, -500);
 
-#if WITH_EDITORONLY_DATA
-    if (!RootComponent)
-    {
-        RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-    }
+    ControlPoints.Add(FVector(0.0,0.0,0.0));
+    ControlPoints.Add(FVector(1.0,0.0,0.0));
+    ControlPoints.Add(FVector(2.0,0.0,0.0));
+    ControlPoints.Add(FVector(3.0,0.0,0.0));*/
 
-    EditorLineBatch = CreateDefaultSubobject<ULineBatchComponent>(TEXT("CatmullEditorLineBatch"));
-    EditorLineBatch->SetupAttachment(RootComponent);
-
-    EditorLineBatch->bHiddenInGame = true;
-    EditorLineBatch->SetIsVisualizationComponent(true);
-    EditorLineBatch->bCalculateAccurateBounds = true;
-    EditorLineBatch->CastShadow = false;
-#endif
+//#if WITH_EDITORONLY_DATA
+//    if (!RootComponent)
+//    {
+//        RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+//    }
+//
+//    EditorLineBatch = CreateDefaultSubobject<ULineBatchComponent>(TEXT("CatmullEditorLineBatch"));
+//    EditorLineBatch->SetupAttachment(RootComponent);
+//
+//    EditorLineBatch->bHiddenInGame = true;
+//    EditorLineBatch->SetIsVisualizationComponent(true);
+//    EditorLineBatch->bCalculateAccurateBounds = true;
+//    EditorLineBatch->CastShadow = false;
+//#endif
 
 }
 
@@ -36,32 +58,28 @@ void ACatmullMover::BeginPlay()
 
     AActor* ActualTarget = TargetActor ? TargetActor : this;
 
-    // En mode additif, on peut initialiser StartPoint pour aider le reset/debug
-    if (bAdditive)
-    {
-        if (StartPoint.IsZero())
-        {
-            StartPoint = ActualTarget->GetActorLocation();
-        }
-    }
+
+    Points.Add(FVector(0.0, 0.0, 0.0));
+    Points.Add(FVector(1.0, 1.0, 0.0));
+    Points.Add(FVector(2.0, 2.0, 0.0));
+    Points.Add(FVector(3.0, 3.0, 0.0));
+    //ActivatedTriggers.Init(false, TriggerPercents.Num());
+    //// En mode additif, on peut initialiser StartPoint pour aider le reset/debug
+    //if (bAdditive)
+    //{
+    //    if (StartPoint.IsZero())
+    //    {
+    //        StartPoint = ActualTarget->GetActorLocation();
+    //    }
+    //}
 
 }
 
-void ACatmullMover::GetTangent(TArray<FVector>& points, float tension) {
-    const int32 num = points.Num();
-
-    for (int32 i = 0; i < num; i++)
-    {
-        TangentPoints[i] = tension * (points[i + 1] - points[i - 1]);
-    }
-
-}
 
 #if WITH_EDITOR
 void ACatmullMover::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
-
 #if WITH_EDITORONLY_DATA
     if (EditorLineBatch && !EditorLineBatch->IsRegistered())
     {
@@ -72,7 +90,10 @@ void ACatmullMover::OnConstruction(const FTransform& Transform)
 #if WITH_EDITORONLY_DATA
     if (!EditorLineBatch)
         return;
-
+    Points.Add(FVector(0.0, 0.0, 0.0));
+    Points.Add(FVector(1.0, 1.0, 0.0));
+    Points.Add(FVector(2.0, 2.0, 0.0));
+    Points.Add(FVector(3.0, 3.0, 0.0));
     // Si debug off -> on nettoie et on sort
     if (!bDrawDebugCurve || !bDrawDebugInEditor)
     {
@@ -80,79 +101,39 @@ void ACatmullMover::OnConstruction(const FTransform& Transform)
         return;
     }
 
-    // IMPORTANT : on flush avant de redessiner => aucune duplication
-    EditorLineBatch->Flush();
+    PreviewSpline->ClearSplinePoints(false);
 
-    AActor* ActualTarget = TargetActor ? TargetActor : this;
-
-    // Construire P0/P1/M0/M1 (comme dans ton Tick)
-    FVector P0, P1, M0, M1;
-
-    if (bAdditive)
+    const int32 NumSegments = DebugSegments;
+    if (NumSegments <= 0 || SamplesPerSegment < 2)
     {
-        FVector Base = bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation();
-        P0 = Base;
-        P1 = Base + EndPoint;
-
-        M0 = StartTangent;
-        M1 = EndTangent - EndPoint;
-    }
-    else
-    {
-        P0 = StartPoint;
-        P1 = EndPoint;
-
-        M0 = StartTangent - StartPoint;
-        M1 = EndTangent - EndPoint;
+        // Just show control points if any
+        for (int32 i = 0; i < ControlPoints.Num(); ++i)
+        {
+            const FVector WorldPos = Transform.TransformPosition(ControlPoints[i]);
+            PreviewSpline->AddSplinePoint(WorldPos, ESplineCoordinateSpace::World, false);
+        }
+        PreviewSpline->SetClosedLoop(bClosedLoop, false);
+        PreviewSpline->UpdateSpline();
+        return;
     }
 
-    const int Segments = FMath::Max(2, DebugSegments);
-
-    // Dessin de la "courbe" (en fait segments successifs)
-    //FVector Prev = P0;
-    Points[0] = P0;
-    FVector Prev = Points[0];
-
-    for (int i = 1; i <= Segments; ++i)
+    // Sample Catmull-Rom and feed into PreviewSpline
+    for (int32 SegmentIndex = 0; SegmentIndex < NumSegments; ++SegmentIndex)
     {
-        FVector Cur = FVector();
-        float u = (float)i / (float)Segments;
-        if (i == 1) {
-            M0 = CalculateCatmullRomTangent(Prev, Prev);
-            TangentsList.Add(M0);
-            M1 = CalculateCatmullRomTangent(Prev, Points[i + 1]);
-            TangentsList.Add(M1);
-            Cur = CalculateHermite(Prev, M0, Points[i], M1, u);
-        }
-        else if (i == Points.Num() - 1) {
-            M0 = TangentsList[i - 1];
-            M1 = CalculateCatmullRomTangent(Prev, Points[i + 1]);
-            TangentsList[i] = M1;
-            Cur = CalculateHermite(Prev, M0, Points[i], M1, u);
-        }
-        else {
-            M0 = TangentsList[i - 1];
-            M1 = CalculateCatmullRomTangent(Prev, Points[i + 1]);
-            TangentsList.Add(M1);
-            Cur = CalculateHermite(Prev, M0, Points[i], M1, u);
-        }
-        // Hermite via ta fonction (plus clean que dupliquer la formule)
-        //FVector Cur = CalculateHermite(P0, M0, P1, M1, u);
+        for (int32 SampleIndex = 0; SampleIndex < SamplesPerSegment; ++SampleIndex)
+        {
+            const float Alpha = static_cast<float>(SampleIndex) / (SamplesPerSegment - 1);
+            const FVector LocalPos = CalculateCatmull(SegmentIndex, Alpha);
+            const FVector WorldPos = Transform.TransformPosition(LocalPos);
 
-        // 0.0f lifetime => "persistant" tant que tu flush pas
-        const float LifeTime = 0.0f;
-        const float Thickness = 3.0f;
-        const uint8 DepthPriority = 0;
-
-        EditorLineBatch->BatchedLines.Add(
-            FBatchedLine(Prev, Cur, FLinearColor::Green, LifeTime, Thickness, DepthPriority)
-        );
-
-        Prev = Cur;
+            PreviewSpline->AddSplinePoint(WorldPos, ESplineCoordinateSpace::World, false);
+        }
     }
 
-    // Force refresh (souvent pas nécessaire, mais safe)
-    EditorLineBatch->MarkRenderStateDirty();
+    PreviewSpline->SetClosedLoop(bClosedLoop, false);
+    PreviewSpline->UpdateSpline();
+
+
 #endif
 }
 #endif
@@ -175,12 +156,30 @@ void ACatmullMover::Tick(float DeltaTime)
 
     float t = FMath::Clamp(CurrentTime / Duration, 0.0f, 1.0f);
 
-    if (bUseEaseInOut)
+    /*if (bUseEaseInOut)
     {
         t = FMath::InterpEaseInOut(0.0f, 1.0f, t, EaseExponent);
     }
+    if (CurrentTime >= Duration)
+    {
+        CurrentTime = Duration;
+        bIsMoving = false;
+        OnAnimationEnded();
+    }
 
-    FVector NewLocation;
+    const float InterpAlongSpline = CurrentTime / Duration;
+
+    for (int i = 0; i < TriggerPercents.Num(); ++i)
+    {
+        if (!ActivatedTriggers[i] && InterpAlongSpline >= (TriggerPercents[i] / 100.0f))
+        {
+            ActivatedTriggers[i] = true;
+            OnSplinePercentReached(InterpAlongSpline);
+        }
+    }*/
+
+    //ActualTarget->SetActorLocation(GetPositionInSpline(InterpAlongSpline));
+    /*FVector NewLocation;
 
     if (bAdditive)
     {
@@ -202,9 +201,9 @@ void ACatmullMover::Tick(float DeltaTime)
         FVector M1 = EndTangent - EndPoint;
 
         NewLocation = CalculateCatmull(StartPoint, M0, EndPoint, M1, t);
-    }
+    }*/
 
-    ActualTarget->SetActorLocation(NewLocation);
+    //ActualTarget->SetActorLocation(NewLocation);
 
     if (CurrentTime >= Duration)
     {
@@ -240,49 +239,62 @@ void ACatmullMover::ResetMovement()
 
     FVector ResetLoc = bAdditive
         ? (bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation())
-        : StartPoint;
+        : Points[0];
 
     ActualTarget->SetActorLocation(ResetLoc);
 }
 
-FVector ACatmullMover::CalculateCatmull(FVector P0, FVector P1, FVector P2, FVector P3, float T) {
-    FVector T1 = 0.5f * (P2 - P0);
-    FVector T2 = 0.5f * (P3 - P1);
+FVector ACatmullMover::CalculateCatmull(int32 SegmentIndex, float T) {
+    /* FVector T1 = 0.5f * (P2 - P0);
+     FVector T2 = 0.5f * (P3 - P1);
 
-    return FMath::CubicInterp(P1, T1, P2, T2, T);
+     return FMath::CubicInterp(P1, T1, P2, T2, T);*/
+    int32 I0, I1, I2, I3;
 
-}
-// La formule d'Hermite Cubique
-FVector ACatmullMover::CalculateHermite(FVector P0, FVector M0, FVector P1, FVector M1, float t)
-{
-    float t2 = t * t;
-    float t3 = t2 * t;
+    const int32 NumPoints = Points.Num();
 
-    // Les 4 fonctions de base d'Hermite
-    float H00 = 2 * t3 - 3 * t2 + 1;      // Influence de P0
-    float H10 = t3 - 2 * t2 + t;          // Influence de M0 (Tangente Départ)
+    if (NumPoints < 4)
+    {
+        // Fallback: clamp indices if not enough points
+        I1 = FMath::Clamp(SegmentIndex, 0, NumPoints - 1);
+        I2 = FMath::Clamp(SegmentIndex + 1, 0, NumPoints - 1);
+        I0 = FMath::Clamp(I1 - 1, 0, NumPoints - 1);
+        I3 = FMath::Clamp(I2 + 1, 0, NumPoints - 1);
+        return;
+    }
 
-    //FVector midPoint = (P1 - P0) / 2;
+    auto WrapIndex = [NumPoints, this](int32 Index) -> int32
+        {
+            if (bClosedLoop)
+            {
+                return (Index % NumPoints + NumPoints) % NumPoints;
+            }
+            else
+            {
+                return FMath::Clamp(Index, 0, NumPoints - 1);
+            }
+        };
 
-    float H01 = -2 * t3 + 3 * t2;         // Influence de P1
-    float H11 = t3 - t2;                  // Influence de M1 (Tangente Arrivée)
+    I1 = WrapIndex(SegmentIndex);
+    I2 = WrapIndex(SegmentIndex + 1);
+    I0 = WrapIndex(SegmentIndex - 1);
+    I3 = WrapIndex(SegmentIndex + 2);
 
-    // Combinaison linéaire
-    FVector Result = (H00 * P0) + (H10 * M0) + (H01 * P1) + (H11 * M1);
 
-    return Result;
-}
-//FVector AHermiteMover::CalculateCatmullRom(
-//    FVector Pprev, FVector P0, FVector P1, FVector Pnext, float t)
-//{
-//    // Catmull–Rom tangents
-//    FVector M0 = 0.5f * (P1 - Pprev);
-//    FVector M1 = 0.5f * (Pnext - P0);
-//
-//    // Use your Hermite function
-//    return CalculateHermite(P0, M0, P1, M1, t);
-//}
-FVector  ACatmullMover::CalculateCatmullRomTangent(FVector P0, FVector P1) {
-    FVector tangent = 0.5f * (P1 - P0);
-    return tangent;
+    const FVector& P0 = ControlPoints[I0];
+    const FVector& P1 = ControlPoints[I1];
+    const FVector& P2 = ControlPoints[I2];
+    const FVector& P3 = ControlPoints[I3];
+
+    if (T < 0.0f) T = 0.0f;
+    if (T > 1.0f) T = 1.0f;
+
+    float t2 = T * T;
+    float t3 = t2 * T;
+
+    return (P1 * 2.0f +
+        (P2 - P0) * T +
+        (P0 * 2.0f - P1 * 5.0f + P2 * 4.0f - P3) * t2 +
+        (-P0 + P1 * 3.0f - P2 * 3.0f + P3) * t3) * 0.5f;
+
 }
