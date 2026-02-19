@@ -94,19 +94,21 @@ void ACatmullMover::Tick(float DeltaTime)
         bIsMoving = false;
        // OnAnimationEnded();
     }
-    const float InterpAlongSpline = CurrentTime / Duration;
+    if (bIsMoving) {
+        const float InterpAlongSpline = CurrentTime / Duration;
 
-    const int32 NumSegments = DebugSegments;
+        const int32 NumSegments = DebugSegments;
 
-    float GlobalT = InterpAlongSpline * NumSegments;
+        float GlobalT = InterpAlongSpline * NumSegments;
 
-    int32 SegmentIndex = FMath::Clamp(FMath::FloorToInt(GlobalT), 0, NumSegments - 1);
+        int32 SegmentIndex = FMath::Clamp(FMath::FloorToInt(GlobalT), 0, NumSegments - 1);
 
-    float LocalT = GlobalT - SegmentIndex;
+        float LocalT = GlobalT - SegmentIndex;
 
-    FVector NewLocation = CalculateCatmull(SegmentIndex, LocalT);
+        FVector NewLocation = CalculateCatmull(SegmentIndex, LocalT);
 
-    ActualTarget->SetActorLocation(NewLocation);
+        ActualTarget->SetActorLocation(NewLocation);
+    }
     
 }
 
