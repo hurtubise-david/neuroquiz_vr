@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -16,12 +14,23 @@ public:
 
 protected:
     virtual void BeginPlay() override;
+#if WITH_EDITOR
+    virtual void OnConstruction(const FTransform& Transform) override;
+#endif
 
 public:
     virtual void Tick(float DeltaTime) override;
 
+    // Unreal Properties
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline", meta = (MakeEditWidget = true))
     TArray<FVector> Points;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline")
+    float Duration = 3.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline")
+    AActor* TargetActor;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline|Debug")
     bool bDrawDebugCurve = true;
@@ -35,19 +44,13 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline|Debug", meta = (ClampMin = "0.01", ClampMax = "10.0"))
     float DebugLifetime = 0.25f;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline")
-    float Duration = 3.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline")
-    AActor* TargetActor;
+    // Unreal Functions
 
     UFUNCTION(BlueprintCallable, Category = "Catmull-Rom Spline")
     void StartMovement();
 
     UFUNCTION(BlueprintCallable, Category = "Catmull-Rom Spline")
     void ResetMovement();
-
-    virtual void OnConstruction(const FTransform& Transform) override;
 
 private:
     float CurrentTime;
