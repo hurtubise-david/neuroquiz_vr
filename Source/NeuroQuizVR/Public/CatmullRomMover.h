@@ -12,49 +12,50 @@ class NEUROQUIZVR_API ACatmullRomMover : public AActor
     GENERATED_BODY()
 
 public:
-    // Sets default values for this actor's propertiesS
     ACatmullRomMover();
 
 protected:
-    // Called when the game starts or when spawned
     virtual void BeginPlay() override;
 
 public:
-    // Called every frame
     virtual void Tick(float DeltaTime) override;
-
-    // --- Configuration ---
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline", meta = (MakeEditWidget = true))
     TArray<FVector> Points;
 
-    // Durée du mouvement en secondes
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline|Debug")
+    bool bDrawDebugCurve = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline|Debug", meta = (ClampMin = "4", ClampMax = "200"))
+    int DebugSegments = 30;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline|Debug")
+    bool bDrawDebugInEditor = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline|Debug", meta = (ClampMin = "0.01", ClampMax = "10.0"))
+    float DebugLifetime = 0.25f;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline")
     float Duration = 3.0f;
 
-    // L'objet à déplacer (si vide, l'acteur se déplace lui-même)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Catmull-Rom Spline")
     AActor* TargetActor;
 
-    // --- Contrôles ---
+    UFUNCTION(BlueprintCallable, Category = "Catmull-Rom Spline")
+    void StartMovement();
 
-    // TODO : DEFINE THESE TO FIX BUILD
+    UFUNCTION(BlueprintCallable, Category = "Catmull-Rom Spline")
+    void ResetMovement();
 
-    //UFUNCTION(BlueprintCallable, Category = "Catmull-Rom Spline")
-    //void StartMovement();
-
-    //UFUNCTION(BlueprintCallable, Category = "Catmull-Rom Spline")
-    //void ResetMovement();
+    virtual void OnConstruction(const FTransform& Transform) override;
 
 private:
     float CurrentTime;
     bool bIsMoving;
 
-    // capturée au StartMovement
     FVector BaseLocation;
     bool bBaseCaptured = false;
 
-    // La fonction mathématique pure d'Hermite
     FVector CalculateCatmullRom(float alpha, TArray<FVector> points);
 
 #if WITH_EDITORONLY_DATA
