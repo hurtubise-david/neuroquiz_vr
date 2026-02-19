@@ -20,10 +20,10 @@ ACatmullMover::ACatmullMover()
     bClosedLoop = false;
 
     // Example default control points (can be removed)
-    Points.Add(FVector(0.f, 0.f, 0.f));
+    /*Points.Add(FVector(0.f, 0.f, 0.f));
     Points.Add(FVector(200.f, 0.f, 0.f));
     Points.Add(FVector(400.f, 200.f, 0.f));
-    Points.Add(FVector(600.f, 0.f, 0.f));
+    Points.Add(FVector(600.f, 0.f, 0.f));*/
 
     /*
     StartTangent = FVector(0, 0, 500);
@@ -58,11 +58,6 @@ void ACatmullMover::BeginPlay()
 
     AActor* ActualTarget = TargetActor ? TargetActor : this;
 
-
-    Points.Add(FVector(0.0, 0.0, 0.0));
-    Points.Add(FVector(1.0, 1.0, 0.0));
-    Points.Add(FVector(2.0, 2.0, 0.0));
-    Points.Add(FVector(3.0, 3.0, 0.0));
     //ActivatedTriggers.Init(false, TriggerPercents.Num());
     //// En mode additif, on peut initialiser StartPoint pour aider le reset/debug
     //if (bAdditive)
@@ -90,10 +85,6 @@ void ACatmullMover::OnConstruction(const FTransform& Transform)
 #if WITH_EDITORONLY_DATA
     if (!EditorLineBatch)
         return;
-    Points.Add(FVector(0.0, 0.0, 0.0));
-    Points.Add(FVector(1.0, 1.0, 0.0));
-    Points.Add(FVector(2.0, 2.0, 0.0));
-    Points.Add(FVector(3.0, 3.0, 0.0));
     // Si debug off -> on nettoie et on sort
     if (!bDrawDebugCurve || !bDrawDebugInEditor)
     {
@@ -156,7 +147,12 @@ void ACatmullMover::Tick(float DeltaTime)
 
     float t = FMath::Clamp(CurrentTime / Duration, 0.0f, 1.0f);
 
-    /*if (bUseEaseInOut)
+    
+    /*if (CurrentTime >= Duration)
+    {
+        bIsMoving = false;
+    }*/
+    if (bUseEaseInOut)
     {
         t = FMath::InterpEaseInOut(0.0f, 1.0f, t, EaseExponent);
     }
@@ -164,51 +160,20 @@ void ACatmullMover::Tick(float DeltaTime)
     {
         CurrentTime = Duration;
         bIsMoving = false;
-        OnAnimationEnded();
+       // OnAnimationEnded();
     }
-
     const float InterpAlongSpline = CurrentTime / Duration;
-
-    for (int i = 0; i < TriggerPercents.Num(); ++i)
-    {
-        if (!ActivatedTriggers[i] && InterpAlongSpline >= (TriggerPercents[i] / 100.0f))
-        {
-            ActivatedTriggers[i] = true;
-            OnSplinePercentReached(InterpAlongSpline);
-        }
-    }*/
-
     //ActualTarget->SetActorLocation(GetPositionInSpline(InterpAlongSpline));
-    /*FVector NewLocation;
+    const int IndexSegment = FMath::FloorToInt(InterpAlongSpline * DebugSegments);
+    float interSegment = (InterpAlongSpline * DebugSegments) - IndexSegment;
 
-    if (bAdditive)
-    {
-        if (!bBaseCaptured)
-        {
-            BaseLocation = ActualTarget->GetActorLocation();
-            bBaseCaptured = true;
-        }
 
-        FVector M0 = StartTangent;
-        FVector M1 = EndTangent - EndPoint;
-
-        FVector Delta = CalculateCatmull(FVector::ZeroVector, M0, EndPoint, M1, t);
-        NewLocation = BaseLocation + Delta;
+    if (bIsMoving) {
+        FVector NewLocation = CalculateCatmull(IndexSegment, interSegment);
+        ActualTarget->SetActorLocation(NewLocation);
     }
-    else
-    {
-        FVector M0 = StartTangent - StartPoint;
-        FVector M1 = EndTangent - EndPoint;
 
-        NewLocation = CalculateCatmull(StartPoint, M0, EndPoint, M1, t);
-    }*/
-
-    //ActualTarget->SetActorLocation(NewLocation);
-
-    if (CurrentTime >= Duration)
-    {
-        bIsMoving = false;
-    }
+    
 }
 
 void ACatmullMover::StartMovement()
@@ -239,7 +204,7 @@ void ACatmullMover::ResetMovement()
 
     FVector ResetLoc = bAdditive
         ? (bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation())
-        : Points[0];
+        : FVector().Zero();
 
     ActualTarget->SetActorLocation(ResetLoc);
 }
