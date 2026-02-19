@@ -19,36 +19,6 @@ ACatmullMover::ACatmullMover()
     SamplesPerSegment = 16;
     bClosedLoop = false;
 
-    // Example default control points (can be removed)
-    /*Points.Add(FVector(0.f, 0.f, 0.f));
-    Points.Add(FVector(200.f, 0.f, 0.f));
-    Points.Add(FVector(400.f, 200.f, 0.f));
-    Points.Add(FVector(600.f, 0.f, 0.f));*/
-
-    /*
-    StartTangent = FVector(0, 0, 500);
-    EndTangent = FVector(0, 0, -500);
-
-    ControlPoints.Add(FVector(0.0,0.0,0.0));
-    ControlPoints.Add(FVector(1.0,0.0,0.0));
-    ControlPoints.Add(FVector(2.0,0.0,0.0));
-    ControlPoints.Add(FVector(3.0,0.0,0.0));*/
-
-//#if WITH_EDITORONLY_DATA
-//    if (!RootComponent)
-//    {
-//        RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-//    }
-//
-//    EditorLineBatch = CreateDefaultSubobject<ULineBatchComponent>(TEXT("CatmullEditorLineBatch"));
-//    EditorLineBatch->SetupAttachment(RootComponent);
-//
-//    EditorLineBatch->bHiddenInGame = true;
-//    EditorLineBatch->SetIsVisualizationComponent(true);
-//    EditorLineBatch->bCalculateAccurateBounds = true;
-//    EditorLineBatch->CastShadow = false;
-//#endif
-
 }
 
 // Called when the game starts or when spawned
@@ -59,15 +29,6 @@ void ACatmullMover::BeginPlay()
     AActor* ActualTarget = TargetActor ? TargetActor : this;
 
     StartMovement();
-    //ActivatedTriggers.Init(false, TriggerPercents.Num());
-    //// En mode additif, on peut initialiser StartPoint pour aider le reset/debug
-    //if (bAdditive)
-    //{
-    //    if (StartPoint.IsZero())
-    //    {
-    //        StartPoint = ActualTarget->GetActorLocation();
-    //    }
-    //}
 
 }
 
@@ -76,29 +37,12 @@ void ACatmullMover::BeginPlay()
 void ACatmullMover::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
-//#if WITH_EDITORONLY_DATA
-//    if (EditorLineBatch && !EditorLineBatch->IsRegistered())
-//    {
-//        EditorLineBatch->RegisterComponent();
-//    }
-//#endif
-//
-//#if WITH_EDITORONLY_DATA
-//    if (!EditorLineBatch)
-//        return;
-//    // Si debug off -> on nettoie et on sort
-//    if (!bDrawDebugCurve || !bDrawDebugInEditor)
-//    {
-//        EditorLineBatch->Flush();
-//        return;
-//    }
     AActor* ActualTarget = TargetActor ? TargetActor : this;
     PreviewSpline->ClearSplinePoints(false);
     FVector Base = bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation();
     const int32 NumSegments = DebugSegments;
     if (NumSegments <= 0 || SamplesPerSegment < 2)
     {
-        // Just show control points if any
         for (int32 i = 0; i < Points.Num(); ++i)
         {
             const FVector WorldPos = Transform.TransformPosition(Points[i] + Base);
@@ -109,7 +53,6 @@ void ACatmullMover::OnConstruction(const FTransform& Transform)
         return;
     }
 
-    // Sample Catmull-Rom and feed into PreviewSpline
     for (int32 SegmentIndex = 0; SegmentIndex < NumSegments; ++SegmentIndex)
     {
         for (int32 SampleIndex = 0; SampleIndex < SamplesPerSegment; ++SampleIndex)
@@ -124,7 +67,6 @@ void ACatmullMover::OnConstruction(const FTransform& Transform)
 
     PreviewSpline->SetClosedLoop(bClosedLoop, false);
     PreviewSpline->UpdateSpline();
-    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Construction DOne"));
 
 #endif
 }
@@ -152,26 +94,19 @@ void ACatmullMover::Tick(float DeltaTime)
         bIsMoving = false;
        // OnAnimationEnded();
     }
-    // Normalized progress along the whole spline
-    const float InterpAlongSpline = CurrentTime / Duration; // 0..1
+    const float InterpAlongSpline = CurrentTime / Duration;
 
-    // Number of Catmull–Rom segments
-    const int32 NumSegments = DebugSegments; // or GetNumSegments()
+    const int32 NumSegments = DebugSegments;
 
-    // Convert global T (0..1) to segment + localT
     float GlobalT = InterpAlongSpline * NumSegments;
 
-    // Clamp to avoid going out of bounds at the end
     int32 SegmentIndex = FMath::Clamp(FMath::FloorToInt(GlobalT), 0, NumSegments - 1);
 
-    float LocalT = GlobalT - SegmentIndex; // fractional part
+    float LocalT = GlobalT - SegmentIndex;
 
-    // Evaluate Catmull–Rom
     FVector NewLocation = CalculateCatmull(SegmentIndex, LocalT);
 
     ActualTarget->SetActorLocation(NewLocation);
-
-    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Tick Done"));
     
 }
 
@@ -179,18 +114,6 @@ void ACatmullMover::StartMovement()
 {
     CurrentTime = 0.0f;
     bIsMoving = true;
-    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Movement started"));
-    /*AActor* ActualTarget = TargetActor ? TargetActor : this;
-
-    if (bAdditive)
-    {
-        BaseLocation = ActualTarget->GetActorLocation();
-        bBaseCaptured = true;
-    }
-    else
-    {
-        bBaseCaptured = false;
-    }*/
 }
 
 
@@ -199,33 +122,20 @@ void ACatmullMover::ResetMovement()
     bIsMoving = false;
     CurrentTime = 0.0f;
 
-    /*AActor* ActualTarget = TargetActor ? TargetActor : this;
-
-    FVector ResetLoc = bAdditive
-        ? (bBaseCaptured ? BaseLocation : ActualTarget->GetActorLocation())
-        : FVector().Zero();
-
-    ActualTarget->SetActorLocation(ResetLoc);*/
 }
 
 FVector ACatmullMover::CalculateCatmull(int32 SegmentIndex, float T) {
-    /* FVector T1 = 0.5f * (P2 - P0);
-     FVector T2 = 0.5f * (P3 - P1);
-
-     return FMath::CubicInterp(P1, T1, P2, T2, T);*/
     int32 I0, I1, I2, I3;
 
     const int32 NumPoints = Points.Num();
 
-    //if (NumPoints < 4)
-    //{
-    //    // Fallback: clamp indices if not enough points
-    //    I1 = FMath::Clamp(SegmentIndex, 0, NumPoints - 1);
-    //    I2 = FMath::Clamp(SegmentIndex + 1, 0, NumPoints - 1);
-    //    I0 = FMath::Clamp(I1 - 1, 0, NumPoints - 1);
-    //    I3 = FMath::Clamp(I2 + 1, 0, NumPoints - 1);
-    //    return;
-    //}
+    if (NumPoints < 4)
+    {
+        I1 = FMath::Clamp(SegmentIndex, 0, NumPoints - 1);
+        I2 = FMath::Clamp(SegmentIndex + 1, 0, NumPoints - 1);
+        I0 = FMath::Clamp(I1 - 1, 0, NumPoints - 1);
+        I3 = FMath::Clamp(I2 + 1, 0, NumPoints - 1);
+    }
 
     auto WrapIndex = [NumPoints, this](int32 Index) -> int32
         {
