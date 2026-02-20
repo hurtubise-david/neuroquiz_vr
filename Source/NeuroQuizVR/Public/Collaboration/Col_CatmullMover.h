@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Col_CatmullMover.generated.h"
-
+//Version DUHY3001
 UCLASS()
 class NEUROQUIZVR_API ACol_CatmullMover : public AActor
 {
